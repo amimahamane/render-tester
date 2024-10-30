@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enregistrement de la page web</title>
+    <style>
+        .click-circle {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background-color: orange;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+        .scroll-line {
+            position: absolute;
+            width: 2px;
+            background-color: orange;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Enregistrement<br><br><br><br><br><br><br><br><br><br><br><br><br><br> de la page Web</h1>
+    <button id="recordButton">Démarrer l'enregistrement</button>
+    <button id="stopButton" disabled>Arrêter l'enregistrement</button>
+    <video id="preview" controls style="display: none;"></video>
+
+    <script>
+        let mediaRecorder;
+        let recordedChunks = [];
+        let lastScrollTop = window.scrollY;
+
+        document.getElementById("recordButton").addEventListener("click", async () => {
+            try {
+                // Capture de la page
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { mediaSource: "screen" }
+                });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+
+                // Gestion des données d'enregistrement
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                // Lorsque l'enregistrement est terminé, afficher la vidéo
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: "video/webm" });
+                    const url = URL.createObjectURL(blob);
+                    const video = document.getElementById("preview");
+                    video.src = url;
+                    video.style.display = "block";
+                    recordedChunks = [];
+                };
+
+                // Commence l'enregistrement
+                mediaRecorder.start();
+                document.getElementById("recordButton").disabled = true;
+                document.getElementById("stopButton").disabled = false;
+            } catch (err) {
+                console.error("Erreur lors de la capture de l'écran:", err);
+            }
+        });
+
+        // Bouton pour arrêter l'enregistrement
+        document.getElementById("stopButton").addEventListener("click", () => {
+            mediaRecorder.stop();
+            document.getElementById("recordButton").disabled = false;
+            document.getElementById("stopButton").disabled = true;
+        });
+
+        // Ajoute l'événement de clic pour créer le cercle orange
+        document.addEventListener("click", (event) => {
+            const circle = document.createElement("div");
+            circle.classList.add("click-circle");
+            circle.style.left = `${event.clientX}px`;
+            circle.style.top = `${event.clientY}px`;
+            document.body.appendChild(circle);
+
+            setTimeout(() => {
+                circle.remove();
+            }, 1000); // Le cercle disparaît après 1 seconde
+        });
+
+        // Ajoute l'événement de défilement pour créer une ligne
+        window.addEventListener("scroll", () => {
+            const scrollLine = document.createElement("div");
+            scrollLine.classList.add("scroll-line");
+
+            const currentScrollTop = window.scrollY;
+            const scrollDistance = currentScrollTop - lastScrollTop;
+
+            // Définir la position et la taille de la ligne de défilement
+            scrollLine.style.left = `${window.innerWidth / 2}px`; // Ligne au centre de la fenêtre
+            scrollLine.style.top = `${lastScrollTop}px`;
+            scrollLine.style.height = `${Math.abs(scrollDistance)}px`;
+
+            // Vérifie si on défile vers le haut ou le bas
+            if (scrollDistance < 0) {
+                // Défilement vers le haut
+                scrollLine.style.top = `${currentScrollTop}px`;
+            }
+
+            document.body.appendChild(scrollLine);
+            lastScrollTop = currentScrollTop;
+
+            // Supprime la ligne de défilement après 1 seconde
+            setTimeout(() => {
+                scrollLine.remove();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
